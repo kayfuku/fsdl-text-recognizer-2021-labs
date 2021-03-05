@@ -32,7 +32,8 @@ def _download_raw_dataset(metadata: Dict, dl_dirname: Path) -> Path:
     print("Computing SHA-256...")
     sha256 = util.compute_sha256(filename)
     if sha256 != metadata["sha256"]:
-        raise ValueError("Downloaded data file SHA-256 does not match that listed in metadata document.")
+        raise ValueError(
+            "Downloaded data file SHA-256 does not match that listed in metadata document.")
     return filename
 
 
@@ -51,6 +52,7 @@ class BaseDataModule(pl.LightningDataModule):
         self.args = vars(args) if args is not None else {}
         self.batch_size = self.args.get("batch_size", BATCH_SIZE)
         self.num_workers = self.args.get("num_workers", NUM_WORKERS)
+        # You can add args here.
 
         # Make sure to set the variables below in subclasses
         self.dims = None
@@ -64,11 +66,13 @@ class BaseDataModule(pl.LightningDataModule):
     @staticmethod
     def add_to_argparse(parser):
         parser.add_argument(
-            "--batch_size", type=int, default=BATCH_SIZE, help="Number of examples to operate on per forward step."
-        )
+            "--batch_size", type=int, default=BATCH_SIZE,
+            help="Number of examples to operate on per forward step.")
         parser.add_argument(
-            "--num_workers", type=int, default=NUM_WORKERS, help="Number of additional processes to load data."
-        )
+            "--num_workers", type=int, default=NUM_WORKERS,
+            help="Number of additional processes to load data.")
+        # You can add args here.
+
         return parser
 
     def config(self):
@@ -91,10 +95,16 @@ class BaseDataModule(pl.LightningDataModule):
         self.data_test = None
 
     def train_dataloader(self):
-        return DataLoader(self.data_train, shuffle=True, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(self.data_train, shuffle=True,
+                          batch_size=self.batch_size,
+                          num_workers=self.num_workers, pin_memory=True)
 
     def val_dataloader(self):
-        return DataLoader(self.data_val, shuffle=False, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(
+            self.data_val, shuffle=False, batch_size=self.batch_size,
+            num_workers=self.num_workers, pin_memory=True)
 
     def test_dataloader(self):
-        return DataLoader(self.data_test, shuffle=False, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
+        return DataLoader(self.data_test, shuffle=False,
+                          batch_size=self.batch_size,
+                          num_workers=self.num_workers, pin_memory=True)
