@@ -13,6 +13,11 @@ from text_recognizer import lit_models
 np.random.seed(42)
 torch.manual_seed(42)
 
+# Workaround for avoiding error 403 when downloading MNIST.
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+urllib.request.install_opener(opener)
+
 
 def _import_class(module_and_class_name: str) -> type:
     """Import class from a module, e.g. 'text_recognizer.models.MLP'"""
@@ -39,7 +44,8 @@ def _setup_parser():
     # Get the data and model classes, so that we can add their specific arguments
     temp_args, _ = parser.parse_known_args()
     data_class = _import_class(f"text_recognizer.data.{temp_args.data_class}")
-    model_class = _import_class(f"text_recognizer.models.{temp_args.model_class}")
+    model_class = _import_class(
+        f"text_recognizer.models.{temp_args.model_class}")
 
     # Get data, model, and LitModel specific arguments
     data_group = parser.add_argument_group("Data Args")
@@ -75,18 +81,23 @@ def main():
         lit_model_class = lit_models.BaseLitModel
 
     if args.load_checkpoint is not None:
-        lit_model = lit_model_class.load_from_checkpoint(args.load_checkpoint, args=args, model=model)
+        lit_model = lit_model_class.load_from_checkpoint(
+            args.load_checkpoint, args=args, model=model)
     else:
         lit_model = lit_model_class(args=args, model=model)
 
     logger = pl.loggers.TensorBoardLogger("training/logs")
 
-    callbacks = [pl.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10)]
+    callbacks = [pl.callbacks.EarlyStopping(
+        monitor="val_loss", mode="min", patience=10)]
 
     args.weights_summary = "full"  # Print full summary of the model
-    trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger, default_root_dir="training/logs")
+    trainer = pl.Trainer.from_argparse_args(
+        args, callbacks=callbacks, logger=logger,
+        default_root_dir="training/logs")
 
-    trainer.tune(lit_model, datamodule=data)  # If passing --auto_lr_find, this will set learning rate
+    # If passing --auto_lr_find, this will set learning rate
+    trainer.tune(lit_model, datamodule=data)
 
     trainer.fit(lit_model, datamodule=data)
     trainer.test(lit_model, datamodule=data)
